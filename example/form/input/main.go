@@ -1,7 +1,7 @@
 package main
 
 import (
-	"ChromaTerm/pkg/term/form"
+	"ChromaTerm/pkg/terminal/form"
 	"fmt"
 )
 
