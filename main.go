@@ -2,6 +2,7 @@ package main
 
 import (
 	"ChromaTerm/pkg/terminal"
+	"fmt"
 	"os"
 )
 
@@ -19,5 +20,22 @@ func main() {
 	}
 
 	terminal.Printf("Terminal size: %d columns x %d rows\n", width, height)
-	terminal.Printf("name: %s\n", "steven")
+	terminal.Print("Test\n")
+	terminal.Println("ok")
+	input := ""
+	for {
+		char := terminal.ReadByte()
+		if char != nil {
+			terminal.Print(string(*char))
+			input += string(*char)
+
+			if *char == 13 {
+				break
+			} else if *char == 127 {
+				input = input[:len(input)-2]
+			}
+		}
+	}
+
+	fmt.Println("Input:", input)
 }

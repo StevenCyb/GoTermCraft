@@ -2,15 +2,13 @@ package form
 
 import (
 	"ChromaTerm/pkg/ansi/csi"
-	"bufio"
-	"io"
+	"ChromaTerm/pkg/terminal"
 	"os"
 	"strings"
 )
 
 type input struct {
-	stdout     io.Writer
-	stdin      io.Reader
+	terminal   *terminal.Terminal
 	isSecret   bool
 	label      string
 	onInput    func(string)
@@ -18,21 +16,16 @@ type input struct {
 }
 
 func NewInput() *input {
+	terminal, _ := terminal.New(os.Stdin, os.Stdout)
+
 	return &input{
-		label:  "Input:",
-		stdin:  os.Stdin,
-		stdout: os.Stdout,
+		label:    "Input:",
+		terminal: terminal,
 	}
 }
 
-func (i *input) Stdout(stdout io.Writer) *input {
-	i.stdout = stdout
-
-	return i
-}
-
-func (i *input) Stdin(stdin io.Reader) *input {
-	i.stdin = stdin
+func (i *input) Terminal(terminal *terminal.Terminal) *input {
+	i.terminal = terminal
 
 	return i
 }
@@ -63,28 +56,25 @@ func (i *input) OnInput(onInput func(string)) *input {
 
 func (i *input) Read(hideInput bool) (*string, error) {
 	input := ""
-	reader := bufio.NewReader(i.stdin)
 
 	for {
-		i.stdout.Write([]byte(i.label + ": "))
-
 		for {
-			char, err := reader.ReadByte()
-			if err != nil {
-				return nil, err
+			char := i.terminal.ReadByte()
+			if char == nil {
+				continue
 			}
 
-			if char == '\n' {
+			if *char == 13 {
 				break
 			}
 
 			if i.isSecret {
-				i.stdout.Write([]byte(csi.CursorBack(byte(len(input))) + strings.Repeat("*", len(input))))
+				i.terminal.Print(csi.CursorBack(byte(len(input))) + strings.Repeat("*", len(input)))
 			} else {
-				i.stdout.Write([]byte{char})
+				i.terminal.Print(*char)
 			}
 
-			input += string(char)
+			input += string(*char)
 
 			if i.onInput != nil {
 				i.onInput(input)
@@ -92,13 +82,13 @@ func (i *input) Read(hideInput bool) (*string, error) {
 		}
 
 		if i.onValidate != nil && !i.onValidate(input) {
-			i.stdout.Write([]byte(csi.CursorPreviousLine(1) + csi.EraseInLine(csi.EraseLineEntire)))
+			i.terminal.Print(csi.CursorPreviousLine(1) + csi.EraseInLine(csi.EraseLineEntire))
 
 			input = ""
 
 			continue
 		} else if hideInput {
-			i.stdout.Write([]byte(csi.CursorPreviousLine(1) + csi.EraseInLine(csi.EraseLineEntire)))
+			i.terminal.Print(csi.CursorPreviousLine(1) + csi.EraseInLine(csi.EraseLineEntire))
 		}
 
 		break
